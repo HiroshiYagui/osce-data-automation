@@ -14,4 +14,7 @@ page=requests.get(url,cookies=cookie,verify=False)
 
 soup=BeautifulSoup(page.text,'html')
 
-print(soup)
+submit_captcha=requests.post(url,cookies=cookie,verify=False)
+response=BeautifulSoup(submit_captcha.text,'lxml')
+
+print(response)
