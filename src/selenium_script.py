@@ -5,8 +5,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from selenium.common.exceptions import NoSuchElementException
 import math
-import timeit
-
+from timeit import default_timer as timer
+import csv
+import logging
+import sys
+import time
 
 '''
 Control de errores (que no se desplome y muestre en que página se cayó)
@@ -20,10 +23,6 @@ Ya no cargarlo a TXT sino CSV
 '''
 
 
-
-
-
-
 # driver.get("https://www.selenium.dev/selenium/web/web-form.html")
 # driver.get("https://www.selenium.dev/selenium/web/linked_image.html")
 # service = webdriver.ChromeService(service_args=['--log-level=ALL'], log_output=subprocess.STDOUT)
@@ -35,21 +34,58 @@ Ya no cargarlo a TXT sino CSV
 #text = driver.find_element(By.NAME, "my-select").find_elements(By.TAG_NAME,"option")
 
 # text = driver.find_element(By.NAME,"my-readonly").get_attribute("value")
-# print(text)
+# logger.info(text)
 # button=driver.find_element(By.TAG_NAME,"button")
 # button.click()
 # text = driver.find_element(By.ID,"message").text
-# print(text)
-driver=webdriver.Chrome()
-#driver=webdriver.Firefox()
-driver.get("https://easprep.osce.gob.pe/portaltribunal-uiwd-pub/Logout")
-#service = webdriver.ChromeService(service_args=['--log-level=ALL'], log_output=subprocess.STDOUT)
+# logger.info(text)
+
+
+
+def end_Execute():
+    end_script=timer()
+    file_output.close()     
+    driver.close()  
+
+    logger.info("Start time:"+str(start_script))
+    logger.info("Prepare time:"+str(start_registers-start_script))
+    if len(time_register)>0:
+        logger.info("Registers time (avg):"+str(sum(time_register)/len(time_register)))
+    logger.info("End time:"+str(end_script))
+    logger.info("Total time:"+str(end_script-start_script))
+
+
+driver=webdriver.Firefox()
+#driver=webdriver.Chrome()
 service = webdriver.FirefoxService(service_args=['--log-level=ALL'], log_output=subprocess.STDOUT)
-file_output=open("output.txt","a")
+logger=logging.getLogger('service')
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
+logger.info("Inicio")
+file_output=open('output.csv','w',newline='')
+output_writer=csv.writer(file_output,delimiter='|',
+                         quotechar="'", quoting=csv.QUOTE_MINIMAL)
+    
+
+input1=sys.argv[1]
+input2=sys.argv[2]
+""" input1=tx1
+input2=tx2 """
+logger.info(input1)
+logger.info(input2)
+""" service = webdriver.ChromeService(service_args=['--log-level=ALL'], log_output=subprocess.STDOUT) """
+
+driver.get("https://easprep.osce.gob.pe/portaltribunal-uiwd-pub/Logout")
+
+""" file_output=open("output.txt","a") """
 
 driver.implicitly_wait(10)
 
-start_script=timeit.timeit()
+start_script=timer()
+end_script=0.0
+start_registers=0.0
+time_register=[]
+
 
 user_element=driver.find_element(By.NAME,"usuario")
 pass_element=driver.find_element(By.NAME,"senha")
@@ -57,24 +93,33 @@ pass_element=driver.find_element(By.NAME,"senha")
 user_element.send_keys("nprieto")
 pass_element.send_keys("123")
 
-#print(user_element.get_attribute("value"))
-#print(pass_element.get_attribute("value"))
+#logger.info(user_element.get_attribute("value"))
+#logger.info(pass_element.get_attribute("value"))
+try:
+    submit_btn=driver.find_element(By.XPATH,"/html/body/div/form/div/div/div/table/tbody/tr[2]/td/table/tbody/tr[2]/td/table/tbody/tr[7]/td/input")
+except NoSuchElementException:
+    logger.error("Error al invocar boton de Login")
+    end_Execute()
+    sys.exit()
 
-arr_btn=driver.find_elements(By.TAG_NAME,"INPUT")
-
-for btn in arr_btn:
+""" for btn in arr_btn:
     value=btn.get_attribute("VALUE")
     if value=="Iniciar Sesión":
         submit_btn=btn
         break
+"""
+#logger.info(submit_btn.get_attribute("VALUE"))
+try:
+    submit_btn.click()
+except NoSuchElementException:
+    logger.error("Error al presionar boton Login")
+    end_Execute()
+    sys.exit()
 
-#print(submit_btn.get_attribute("VALUE"))
-submit_btn.click()
-
-list_options=driver.find_elements(By.TAG_NAME,"li")
+""" list_options=driver.find_elements(By.TAG_NAME,"li")
 
 for option in list_options:
-    print(option.text)
+    logger.info(option.text)
     if option.text=="Reportes":
         select_option=option
         break
@@ -84,46 +129,71 @@ list_options=driver.find_elements(By.TAG_NAME,"li")
 for option in list_options:
     if option.text=="Reporte de Decretos":
         select_option=option
-        break
+        break """
+try:
+    select_option=driver.find_element(By.XPATH,'/html/body/div/nav/div/div/ul/li[6]/a')
+    select_option.click()
+    select_option=driver.find_element(By.XPATH,'/html/body/div/nav/div/div/ul/li[6]/ul/li[13]/a')
+    select_option.click()
+except NoSuchElementException:
+    logger.error("Error al encontrar elementos de Navegacion")
+    end_Execute()
+    sys.exit()
 
-select_option.click()
+
+#list_status=driver.find_element(By.ID,"estado")
+try:
+    list_status=driver.find_element(By.XPATH,'//*[@id="estado"]')
+    select_status=Select(list_status)
+    select_status.select_by_visible_text("Pendiente")
+except NoSuchElementException:
+    logger.error("No se puedo encontrar ESTADO")
+    end_Execute()
+    sys.exit()
+
+try:
+    fecha_inicio=driver.find_element(By.XPATH,'//*[@id="FE_REGISTRO_INICIO"]')
+    fecha_fin=driver.find_element(By.XPATH,'//*[@id="FE_REGISTRO_FIN"]')
+
+    """ fecha_inicio.send_keys("21/01/2024")
+    fecha_fin.send_keys("16/02/2024") """
+    fecha_inicio.send_keys(input1)
+    fecha_fin.send_keys(input2)
+
+    btn_Buscar=driver.find_element(By.XPATH,'//*[@id="Buscar"]')
+    btn_Buscar.click()
+except NoSuchElementException:
+    logger.error("Problema con ingreso de fechas")
+    end_Execute()
+    sys.exit()
+    
+
+start_registers=timer()
+
+#tabla_body=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]')
+try:
+    lista_cabecera=driver.find_elements(By.XPATH,'/html/body/div[1]/form/div/div/div/table/tbody/tr[2]/td/table[3]/thead/tr/th')
+    cabecera_text=[]
+    for cabecera in lista_cabecera:
+        if cabecera.text != "":
+            cabecera_text.append(cabecera.text)
+    output_writer.writerow(cabecera_text)
+except NoSuchElementException:
+    logger.error("No se encontro cabecera")
+    end_Execute()
+    sys.exit()
 
 
-list_status=driver.find_element(By.ID,"estado")
-select_status=Select(list_status)
-select_status.select_by_visible_text("Pendiente")
-
-fecha_inicio=driver.find_element(By.NAME,"FE_REGISTRO_INICIO")
-fecha_fin=driver.find_element(By.NAME,"FE_REGISTRO_FIN")
-
-fecha_inicio.send_keys("01/02/2024")
-fecha_fin.send_keys("09/02/2024")
-
-btn_Buscar=driver.find_element(By.ID,"Buscar")
-btn_Buscar.click()
-
-start_registers=timeit.timeit()
-time_register=[]
-
-tabla_body=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]')
-lista_cabecera=tabla_body.find_elements(By.TAG_NAME,"th")
-cabecera_text=""
-for cabecera in lista_cabecera:
-    if cabecera.text != "":
-        cabecera_text+=cabecera.text+","
-file_output.write(cabecera_text+"\n")
 try:
     register_quantitys=driver.find_elements(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr')
-    print(len(register_quantitys))
-    register_quantity=driver.find_elements(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr['+len(register_quantitys)+']/td/b')
+    register_quantity=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr['+str(len(register_quantitys))+']/td/b')
     quantity=register_quantity.text[register_quantity.text.find(": ")+2:]
     quantity=int(quantity)
-    quantity=math.ceil(quantity/30)
-    print(quantity)
+    num_pages=math.ceil(quantity/30)
 except NoSuchElementException:
-    print("Alejo")
+    logger.info("Registros < 31")
 
-""" 
+""" """ 
 # lista_paginas=[]
 
 # list_paginas=driver.find_element(By.ID,"Pagina")
@@ -131,58 +201,64 @@ except NoSuchElementException:
 # list_paginas_options=select_pagina.options
 # # for option in list_paginas_options:
 # #     lista_paginas.append(option.get_attribute("value"))
-# # print(lista_paginas[-1])
+# # logger.info(lista_paginas[-1])
 
 index=1
-while index<=quantity:
-    list_paginas=driver.find_element(By.ID,"Pagina")
-    select_pagina=Select(list_paginas)
-    select_pagina.select_by_value(str(index))
-    tabla_body=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]')
-    tabla_registers=tabla_body.find_elements(By.TAG_NAME,"tr")
-    register_time_start=timeit.timeit()
-    for register in tabla_registers:
-        tabla_data=register.find_elements(By.TAG_NAME,"td")
-        register_text=""
-        for data in tabla_data:
-            if not "total de registros" in data.text and not "Pagina" in data.text:
-                register_text+=data.text+','
-        print(register_text)
-        if register_text != "":
-            file_output.write(register_text+"\n")
+while index<=num_pages:
     try:
-        register_quantity=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr[32]/td/b')
+        list_paginas=driver.find_element(By.XPATH,'//*[@id="Pagina"]')
+        select_pagina=Select(list_paginas)
+        select_pagina.select_by_value(str(index))
+        time.sleep(2)
+    except NoSuchElementException:
+        logger.info("Registros No tienen más de 1 pagina")
+    tabla_registers=[]
+    #tabla_body=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]')
+    try:
+        tabla_registers=driver.find_elements(By.XPATH,"/html/body/div[1]/form/div/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr")
+        register_time_start=timer()
+        for register in tabla_registers:
+            tabla_data=[]
+            tabla_data=register.find_elements(By.XPATH,"td")
+            register_text=[]
+            for data in tabla_data:
+                if not "total de registros" in data.text and not "Pagina" in data.text:
+                    register_text.append(data.text.replace('\n',''))   
+            if len(register_text)>0:
+                logger.info("Registro:"+register_text[0]+"/"+str(quantity))
+                output_writer.writerow(register_text)
+    except Exception:
+        logger.error("No se encuentran los registros/valores",exc_info=True)
+        end_Execute()
+        sys.exit()
+    try:
+        register_quantitys=driver.find_elements(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr')
+        register_quantity=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr['+str(len(register_quantitys))+']/td/b')
         quantity=register_quantity.text[register_quantity.text.find(": ")+2:]
         quantity=int(quantity)
-        quantity=math.ceil(quantity/30)
+        num_pages=math.ceil(quantity/30)
     except NoSuchElementException:
-        print("terminado")
+        logger.info("terminado")
+    logger.info("pagina:"+str(index))
     index+=1
-    register_time_end=timeit.timeit()
+    register_time_end=timer()
     time_register.append(register_time_end-register_time_start)
 
-end_script=timeit.timeit()
-file_output.close()       
-
-print("Start time:",start_script)
-print("Prepare time:",start_registers-start_script)
-print("Registers time (avg):",sum(time_register)/len(time_register))
-print("End time:" , end_script)
-print("Total time:", end_script-start_script)
-
-# table_header=driver.find_element(By.CLASS_NAME,"provido_lista").find_elements(By.TAG_NAME,"th")
-# header_text=""
-# for header in table_header:
-#     header_text+=header.text+"|"
-# print(header_text)
-# # table_body=driver.find_element(By.ID,"table1").find_element(By.TAG_NAME,"tbody").find_elements(By.TAG_NAME,"tr")
-# # for element in table_body:
-# #     values=element.find_elements(By.TAG_NAME,"td")
-# #     value_text=""
-# #     for value in values:
-# #         value_text+=value.text+"|"
-# #     print(value_text)
+logger.info("Terminado con Exito")
+end_Execute()
 
 
+    # table_header=driver.find_element(By.CLASS_NAME,"provido_lista").find_elements(By.TAG_NAME,"th")
+    # header_text=""
+    # for header in table_header:
+    #     header_text+=header.text+"|"
+    # logger.info(header_text)
+    # # table_body=driver.find_element(By.ID,"table1").find_element(By.TAG_NAME,"tbody").find_elements(By.TAG_NAME,"tr")
+    # # for element in table_body:
+    # #     values=element.find_elements(By.TAG_NAME,"td")
+    # #     value_text=""
+    # #     for value in values:
+    # #         value_text+=value.text+"|"
+    # #     logger.info(value_text)
 
- """
+
