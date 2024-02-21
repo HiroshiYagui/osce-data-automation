@@ -1,0 +1,13 @@
+{
+    "boton_submt":"/html/body/div/form/div/div/div/table/tbody/tr[2]/td/table/tbody/tr[2]/td/table/tbody/tr[7]/td/input",
+    "opcion_reporte":"/html/body/div/nav/div/div/ul/li[6]/a",
+    "reporte_decretos":"/html/body/div/nav/div/div/ul/li[6]/ul/li[13]/a",
+    "estado_reporte":"//*[@id='estado']",
+    "fecha_inicio":"//*[@id='FE_REGISTRO_INICIO']",
+    "fecha_fin":"//*[@id='FE_REGISTRO_FIN']",
+    "btn_buscar":"//*[@id='Buscar']",
+    "tabla_cabecera":"/html/body/div[1]/form/div/div/div/table/tbody/tr[2]/td/table[3]/thead/tr/th",
+    "linea_cantidadReg":"//*[@id='page-wrapper']/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr",
+    "select_pagina":"//*[@id='Pagina']",
+    "tabla_registro":"/html/body/div[1]/form/div/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr"
+}

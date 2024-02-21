@@ -10,16 +10,17 @@ import csv
 import logging
 import sys
 import time
+import json
 
 '''
-Control de errores (que no se desplome y muestre en que página se cayó)
-Log de detalles
-Input MES a MES
-Plantilla de XPATH (HTML de ejemplo), lo cargamos , cuando se hace la referencia
+Control de errores (que no se desplome y muestre en que página se cayó) #
+Log de detalles #
+Input MES a MES #
+Plantilla de XPATH (HTML de ejemplo), lo cargamos , cuando se hace la referencia #
 Archivo de configuración:
     tabla_login:/html/body/div[1]/div/div/div[7]/div/div/div/div/div/div[2]/div[3]/div/article/article[1]/p[14]
     tabla_decretos:/html/body/div[1]/div/div/div[7]/div/div/div/div/div/div[2]/div[3]/div/article/article[1]/p[13]
-Ya no cargarlo a TXT sino CSV
+Ya no cargarlo a TXT sino CSV #
 '''
 
 
@@ -45,7 +46,8 @@ Ya no cargarlo a TXT sino CSV
 def end_Execute():
     end_script=timer()
     file_output.close()     
-    driver.close()  
+    driver.close()
+    parameters.close()  
 
     logger.info("Start time:"+str(start_script))
     logger.info("Prepare time:"+str(start_registers-start_script))
@@ -54,19 +56,27 @@ def end_Execute():
     logger.info("End time:"+str(end_script))
     logger.info("Total time:"+str(end_script-start_script))
 
+def start_execute():
+    driver=webdriver.Firefox()
+    #driver=webdriver.Chrome()
+    service = webdriver.FirefoxService(service_args=['--log-level=ALL'], log_output=subprocess.STDOUT)
+    logger=logging.getLogger('service')
+    logging.basicConfig(level=logging.INFO)
+    logger.setLevel(logging.INFO)
+    logger.info("Inicio")
+    file_output=open('output.csv','w',newline='')
+    file_json=open("xpath.json",'r')
+    output_writer=csv.writer(file_output,delimiter='|',
+                            quotechar="'", quoting=csv.QUOTE_MINIMAL)
+    parameters=json.load(file_json)
+    return driver,service,output_writer,file_output,logger,parameters
 
-driver=webdriver.Firefox()
-#driver=webdriver.Chrome()
-service = webdriver.FirefoxService(service_args=['--log-level=ALL'], log_output=subprocess.STDOUT)
-logger=logging.getLogger('service')
-logging.basicConfig(level=logging.INFO)
-logger.setLevel(logging.INFO)
-logger.info("Inicio")
-file_output=open('output.csv','w',newline='')
-output_writer=csv.writer(file_output,delimiter='|',
-                         quotechar="'", quoting=csv.QUOTE_MINIMAL)
-    
 
+
+
+
+
+driver,service,output_writer,file_output,logger,parameters=start_execute()
 input1=sys.argv[1]
 input2=sys.argv[2]
 """ input1=tx1
@@ -96,7 +106,7 @@ pass_element.send_keys("123")
 #logger.info(user_element.get_attribute("value"))
 #logger.info(pass_element.get_attribute("value"))
 try:
-    submit_btn=driver.find_element(By.XPATH,"/html/body/div/form/div/div/div/table/tbody/tr[2]/td/table/tbody/tr[2]/td/table/tbody/tr[7]/td/input")
+    submit_btn=driver.find_element(By.XPATH,parameters["boton_submt"])
 except NoSuchElementException:
     logger.error("Error al invocar boton de Login")
     end_Execute()
@@ -131,9 +141,9 @@ for option in list_options:
         select_option=option
         break """
 try:
-    select_option=driver.find_element(By.XPATH,'/html/body/div/nav/div/div/ul/li[6]/a')
+    select_option=driver.find_element(By.XPATH,parameters["opcion_reporte"])
     select_option.click()
-    select_option=driver.find_element(By.XPATH,'/html/body/div/nav/div/div/ul/li[6]/ul/li[13]/a')
+    select_option=driver.find_element(By.XPATH,parameters["reporte_decretos"])
     select_option.click()
 except NoSuchElementException:
     logger.error("Error al encontrar elementos de Navegacion")
@@ -143,7 +153,7 @@ except NoSuchElementException:
 
 #list_status=driver.find_element(By.ID,"estado")
 try:
-    list_status=driver.find_element(By.XPATH,'//*[@id="estado"]')
+    list_status=driver.find_element(By.XPATH,parameters["estado_reporte"])
     select_status=Select(list_status)
     select_status.select_by_visible_text("Pendiente")
 except NoSuchElementException:
@@ -152,15 +162,15 @@ except NoSuchElementException:
     sys.exit()
 
 try:
-    fecha_inicio=driver.find_element(By.XPATH,'//*[@id="FE_REGISTRO_INICIO"]')
-    fecha_fin=driver.find_element(By.XPATH,'//*[@id="FE_REGISTRO_FIN"]')
+    fecha_inicio=driver.find_element(By.XPATH,parameters["fecha_inicio"])
+    fecha_fin=driver.find_element(By.XPATH,parameters["fecha_fin"])
 
     """ fecha_inicio.send_keys("21/01/2024")
     fecha_fin.send_keys("16/02/2024") """
     fecha_inicio.send_keys(input1)
     fecha_fin.send_keys(input2)
 
-    btn_Buscar=driver.find_element(By.XPATH,'//*[@id="Buscar"]')
+    btn_Buscar=driver.find_element(By.XPATH,parameters["btn_buscar"])
     btn_Buscar.click()
 except NoSuchElementException:
     logger.error("Problema con ingreso de fechas")
@@ -172,7 +182,7 @@ start_registers=timer()
 
 #tabla_body=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]')
 try:
-    lista_cabecera=driver.find_elements(By.XPATH,'/html/body/div[1]/form/div/div/div/table/tbody/tr[2]/td/table[3]/thead/tr/th')
+    lista_cabecera=driver.find_elements(By.XPATH,parameters["tabla_cabecera"])
     cabecera_text=[]
     for cabecera in lista_cabecera:
         if cabecera.text != "":
@@ -185,8 +195,8 @@ except NoSuchElementException:
 
 
 try:
-    register_quantitys=driver.find_elements(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr')
-    register_quantity=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr['+str(len(register_quantitys))+']/td/b')
+    register_quantitys=driver.find_elements(By.XPATH,parameters["linea_cantidadReg"])
+    register_quantity=driver.find_element(By.XPATH,parameters["linea_cantidadReg"]+'['+str(len(register_quantitys))+']/td/b')
     quantity=register_quantity.text[register_quantity.text.find(": ")+2:]
     quantity=int(quantity)
     num_pages=math.ceil(quantity/30)
@@ -204,9 +214,10 @@ except NoSuchElementException:
 # # logger.info(lista_paginas[-1])
 
 index=1
+
 while index<=num_pages:
     try:
-        list_paginas=driver.find_element(By.XPATH,'//*[@id="Pagina"]')
+        list_paginas=driver.find_element(By.XPATH,parameters["select_pagina"])
         select_pagina=Select(list_paginas)
         select_pagina.select_by_value(str(index))
         time.sleep(2)
@@ -215,7 +226,12 @@ while index<=num_pages:
     tabla_registers=[]
     #tabla_body=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]')
     try:
-        tabla_registers=driver.find_elements(By.XPATH,"/html/body/div[1]/form/div/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr")
+        tabla_registers=driver.find_elements(By.XPATH,parameters["tabla_registro"])
+        first_register=int(tabla_registers[0].find_elements(By.XPATH,"td")[0].text)
+        while first_register!=30*(index-1)+1:
+            time.sleep(2)
+            tabla_registers=driver.find_elements(By.XPATH,parameters["tabla_registro"])
+            first_register=int(tabla_registers[0].find_elements(By.XPATH,"td")[0].text)
         register_time_start=timer()
         for register in tabla_registers:
             tabla_data=[]
@@ -232,8 +248,8 @@ while index<=num_pages:
         end_Execute()
         sys.exit()
     try:
-        register_quantitys=driver.find_elements(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr')
-        register_quantity=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]/tbody/tr['+str(len(register_quantitys))+']/td/b')
+        register_quantitys=driver.find_elements(By.XPATH,parameters["linea_cantidadReg"])
+        register_quantity=driver.find_element(By.XPATH,parameters["linea_cantidadReg"]+'['+str(len(register_quantitys))+']/td/b')
         quantity=register_quantity.text[register_quantity.text.find(": ")+2:]
         quantity=int(quantity)
         num_pages=math.ceil(quantity/30)

@@ -1,1 +1,0 @@
-N°,Nº Expediente,Tipo de Expediente,Número de Decreto,Especialista,Contenido,RUC,Razon Social,Fecha de Creación,Hora de Creación,Fecha del Decreto,Fecha De Aprobacion,Hora De Aprobacion,Estado,Ver Decreto,
