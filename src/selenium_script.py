@@ -21,6 +21,25 @@ Archivo de configuración:
     tabla_login:/html/body/div[1]/div/div/div[7]/div/div/div/div/div/div[2]/div[3]/div/article/article[1]/p[14]
     tabla_decretos:/html/body/div[1]/div/div/div[7]/div/div/div/div/div/div[2]/div[3]/div/article/article[1]/p[13]
 Ya no cargarlo a TXT sino CSV #
+
+Ejecutar el descargar listado
+
+
+Hago un manual de instalacion
+Que se cree un .exe
+Crear un módulo con frame que invoque al script con parámetros de fecha 
+    -Debe incluir: 
+        *Fecha de inicio, fecha de fin, año , estado
+    -Debe bloquearse hasta que termine el script
+    -Al finalizar muestra mensaje de correcto o error
+    -Decidir el nombre de archivo de salida
+
+Crear flujo de frames por cada reporte
+    -Se cambia el archivo de parametros para cada flujo
+    -Se cambia los argumentos del script (Un flujo por cada tipo de reporte) o en el archivo de parámetros se especificara los campos que deben ser llenados
+    
+
+Preguntar por los reportes a explotar
 '''
 
 
@@ -47,14 +66,14 @@ def end_Execute():
     end_script=timer()
     file_output.close()     
     driver.close()
-    parameters.close()  
+    file_json.close()  
 
-    logger.info("Start time:"+str(start_script))
-    logger.info("Prepare time:"+str(start_registers-start_script))
+    logger.info(time.ctime()+':\t'+"Start time:"+str(start_script))
+    logger.info(time.ctime()+':\t'+"Prepare time:"+str(start_registers-start_script))
     if len(time_register)>0:
-        logger.info("Registers time (avg):"+str(sum(time_register)/len(time_register)))
-    logger.info("End time:"+str(end_script))
-    logger.info("Total time:"+str(end_script-start_script))
+        logger.info(time.ctime()+':\t'+"Registers time (avg):"+str(sum(time_register)/len(time_register)))
+    logger.info(time.ctime()+':\t'+"End time:"+str(end_script))
+    logger.info(time.ctime()+':\t'+"Total time:"+str(end_script-start_script))
 
 def start_execute():
     driver=webdriver.Firefox()
@@ -68,21 +87,20 @@ def start_execute():
     file_json=open("xpath.json",'r')
     output_writer=csv.writer(file_output,delimiter='|',
                             quotechar="'", quoting=csv.QUOTE_MINIMAL)
-    parameters=json.load(file_json)
-    return driver,service,output_writer,file_output,logger,parameters
+
+    return driver,service,output_writer,file_output,logger,file_json
 
 
 
 
-
-
-driver,service,output_writer,file_output,logger,parameters=start_execute()
+driver,service,output_writer,file_output,logger,file_json=start_execute()
+parameters=json.load(file_json)
 input1=sys.argv[1]
 input2=sys.argv[2]
 """ input1=tx1
 input2=tx2 """
-logger.info(input1)
-logger.info(input2)
+logger.info(time.ctime()+':\t'+input1)
+logger.info(time.ctime()+':\t'+input2)
 """ service = webdriver.ChromeService(service_args=['--log-level=ALL'], log_output=subprocess.STDOUT) """
 
 driver.get("https://easprep.osce.gob.pe/portaltribunal-uiwd-pub/Logout")
@@ -108,7 +126,7 @@ pass_element.send_keys("123")
 try:
     submit_btn=driver.find_element(By.XPATH,parameters["boton_submt"])
 except NoSuchElementException:
-    logger.error("Error al invocar boton de Login")
+    logger.error(time.ctime()+':\t'+"Error al invocar boton de Login")
     end_Execute()
     sys.exit()
 
@@ -122,7 +140,7 @@ except NoSuchElementException:
 try:
     submit_btn.click()
 except NoSuchElementException:
-    logger.error("Error al presionar boton Login")
+    logger.error(time.ctime()+':\t'+"Error al presionar boton Login")
     end_Execute()
     sys.exit()
 
@@ -146,7 +164,7 @@ try:
     select_option=driver.find_element(By.XPATH,parameters["reporte_decretos"])
     select_option.click()
 except NoSuchElementException:
-    logger.error("Error al encontrar elementos de Navegacion")
+    logger.error(time.ctime()+':\t'+"Error al encontrar elementos de Navegacion")
     end_Execute()
     sys.exit()
 
@@ -157,7 +175,7 @@ try:
     select_status=Select(list_status)
     select_status.select_by_visible_text("Pendiente")
 except NoSuchElementException:
-    logger.error("No se puedo encontrar ESTADO")
+    logger.error(time.ctime()+':\t'+"No se puedo encontrar ESTADO")
     end_Execute()
     sys.exit()
 
@@ -173,7 +191,7 @@ try:
     btn_Buscar=driver.find_element(By.XPATH,parameters["btn_buscar"])
     btn_Buscar.click()
 except NoSuchElementException:
-    logger.error("Problema con ingreso de fechas")
+    logger.error(time.ctime()+':\t'+"Problema con ingreso de fechas")
     end_Execute()
     sys.exit()
     
@@ -189,7 +207,7 @@ try:
             cabecera_text.append(cabecera.text)
     output_writer.writerow(cabecera_text)
 except NoSuchElementException:
-    logger.error("No se encontro cabecera")
+    logger.error(time.ctime()+':\t'+"No se encontro cabecera")
     end_Execute()
     sys.exit()
 
@@ -201,7 +219,7 @@ try:
     quantity=int(quantity)
     num_pages=math.ceil(quantity/30)
 except NoSuchElementException:
-    logger.info("Registros < 31")
+    logger.info(time.ctime()+':\t'+"Registros < 31")
 
 """ """ 
 # lista_paginas=[]
@@ -222,16 +240,17 @@ while index<=num_pages:
         select_pagina.select_by_value(str(index))
         time.sleep(2)
     except NoSuchElementException:
-        logger.info("Registros No tienen más de 1 pagina")
+        logger.info(time.ctime()+':\t'+"Registros No tienen más de 1 pagina")
     tabla_registers=[]
     #tabla_body=driver.find_element(By.XPATH,'//*[@id="page-wrapper"]/div/div/table/tbody/tr[2]/td/table[3]')
     try:
         tabla_registers=driver.find_elements(By.XPATH,parameters["tabla_registro"])
         first_register=int(tabla_registers[0].find_elements(By.XPATH,"td")[0].text)
         while first_register!=30*(index-1)+1:
-            time.sleep(2)
+            time.sleep(0.5)
             tabla_registers=driver.find_elements(By.XPATH,parameters["tabla_registro"])
-            first_register=int(tabla_registers[0].find_elements(By.XPATH,"td")[0].text)
+            if len(tabla_registers)>0:
+                first_register=int(tabla_registers[0].find_elements(By.XPATH,"td")[0].text)
         register_time_start=timer()
         for register in tabla_registers:
             tabla_data=[]
@@ -241,7 +260,7 @@ while index<=num_pages:
                 if not "total de registros" in data.text and not "Pagina" in data.text:
                     register_text.append(data.text.replace('\n',''))   
             if len(register_text)>0:
-                logger.info("Registro:"+register_text[0]+"/"+str(quantity))
+                logger.info(time.ctime()+':\t'+"Registro:"+register_text[0]+"/"+str(quantity))
                 output_writer.writerow(register_text)
     except Exception:
         logger.error("No se encuentran los registros/valores",exc_info=True)
@@ -254,13 +273,13 @@ while index<=num_pages:
         quantity=int(quantity)
         num_pages=math.ceil(quantity/30)
     except NoSuchElementException:
-        logger.info("terminado")
-    logger.info("pagina:"+str(index))
+        logger.info(time.ctime()+':\t'+"terminado")
+    logger.info(time.ctime()+':\t'+"pagina:"+str(index))
     index+=1
     register_time_end=timer()
     time_register.append(register_time_end-register_time_start)
 
-logger.info("Terminado con Exito")
+logger.info(time.ctime()+':\t'+"Terminado con Exito")
 end_Execute()
 
 
