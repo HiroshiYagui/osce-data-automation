@@ -65,7 +65,7 @@ class decretos_page(ttk.Frame):
     def process(self,fecha_inicio,fecha_fin):
         logger.info(time.ctime()+"\tIniciando flujo_1")
         logger.info(time.ctime()+"\tParams:\t"+fecha_inicio+" "+fecha_fin)
-        subprocess.Popen(['python3','src/selenium_script.py',fecha_inicio,fecha_fin])
+        subprocess.Popen(['python3','run.py',fecha_inicio,fecha_fin])
 
 
 class main_page(ttk.Frame):
